@@ -16,6 +16,7 @@ flowchart LR
         D5 --> D8[Upload GitHub artifact — 30 days]:::data
         D4 -->|Critical API failure| DF[Workflow fails]:::alert
         D7 -->|SMTP failure| DF
+        DF --> DN[Automated failure notification via Gmail]:::alert
     end
 
     subgraph WEEKLY[Weekly health check — Monday 09:00 SAST / 07:00 UTC]
@@ -26,12 +27,15 @@ flowchart LR
         W5 -->|Yes| W6[Email HEALTHY summary]:::data
         W5 -->|No| W7[Email UNHEALTHY summary]:::alert
         W7 --> W8[Fail health-check workflow visibly]:::alert
+        W8 --> WN[Automated failure notification via Gmail]:::alert
     end
 
     S[GitHub Actions secrets\nShopify token • Gmail app password]:::secret --> D3
     S --> D7
     S --> W6
     S --> W7
+    S --> DN
+    S --> WN
     D8 -. recent runs and artifacts .-> W2
 
     style DAILY fill:#f8fafc,stroke:#64748b,stroke-width:1px
