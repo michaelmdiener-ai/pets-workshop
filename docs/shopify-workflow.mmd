@@ -1,0 +1,38 @@
+flowchart LR
+    classDef trigger fill:#1f2937,color:#fff,stroke:#111827,stroke-width:2px
+    classDef process fill:#dbeafe,color:#1e3a8a,stroke:#2563eb,stroke-width:1.5px
+    classDef data fill:#dcfce7,color:#14532d,stroke:#16a34a,stroke-width:1.5px
+    classDef alert fill:#fee2e2,color:#7f1d1d,stroke:#dc2626,stroke-width:1.5px
+    classDef secret fill:#fef3c7,color:#78350f,stroke:#d97706,stroke-width:1.5px
+
+    subgraph DAILY[Daily report workflow — 06:00 SAST / 04:00 UTC]
+        D1[Scheduled trigger]:::trigger --> D2[Set previous 24-hour window]:::process
+        D2 --> D3[Shopify GraphQL collector]:::process
+        D3 --> D4{ShopifyQL and orders succeed?}:::process
+        D4 -->|Yes| D5[Generate JSON, CSV, Markdown]:::data
+        D4 -->|Traffic unavailable| D6[Record permission or metric error]:::alert
+        D6 --> D5
+        D5 --> D7[Email report via Gmail SMTP]:::process
+        D5 --> D8[Upload GitHub artifact — 30 days]:::data
+        D4 -->|Critical API failure| DF[Workflow fails]:::alert
+        D7 -->|SMTP failure| DF
+    end
+
+    subgraph WEEKLY[Weekly health check — Monday 09:00 SAST / 07:00 UTC]
+        W1[Weekly trigger]:::trigger --> W2[Inspect last 7 days of daily runs]:::process
+        W2 --> W3[Check run conclusions]:::process
+        W3 --> W4[Check latest artifacts]:::process
+        W4 --> W5{Healthy?}:::process
+        W5 -->|Yes| W6[Email HEALTHY summary]:::data
+        W5 -->|No| W7[Email UNHEALTHY summary]:::alert
+        W7 --> W8[Fail health-check workflow visibly]:::alert
+    end
+
+    S[GitHub Actions secrets\nShopify token • Gmail app password]:::secret --> D3
+    S --> D7
+    S --> W6
+    S --> W7
+    D8 -. recent runs and artifacts .-> W2
+
+    style DAILY fill:#f8fafc,stroke:#64748b,stroke-width:1px
+    style WEEKLY fill:#f8fafc,stroke:#64748b,stroke-width:1px

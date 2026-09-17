@@ -1,5 +1,11 @@
 # Daily Shopify report automation
 
+## Workflow visual
+
+![Shopify reporting workflow](shopify-workflow.png)
+
+The [Mermaid source](shopify-workflow.mmd) and rendered PNG show the daily report path, weekly health check, GitHub secrets, Shopify/Gmail integrations, artifacts, and failure handling.
+
 The workflow at `.github/workflows/shopify-daily-report.yml` runs every day at **06:00 Africa/Johannesburg** (04:00 UTC), collects the previous 24 hours of Shopify sales and traffic data, emails the report to the configured recipient, and retains the generated files as GitHub Actions artifacts for 30 days.
 
 The workflow at `.github/workflows/shopify-weekly-health.yml` runs every Monday at **09:00 Africa/Johannesburg** (07:00 UTC). It checks the last seven days of daily report workflow runs, identifies failed or missing runs, checks whether the latest successful run has uploaded artifacts, and emails a health summary. A critical health finding makes the health-check workflow fail visibly in GitHub Actions.
