@@ -1,0 +1,50 @@
+name: Daily Shopify sales and traffic report
+
+on:
+  schedule:
+    # 04:00 UTC = 06:00 Africa/Johannesburg (SAST).
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
+      SHOPIFY_ADMIN_TOKEN: ${{ secrets.SHOPIFY_ADMIN_TOKEN }}
+      SHOPIFY_API_VERSION: "2025-10"
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      EMAIL_TO: "michaelmdiener@gmail.com"
+      EMAIL_SENDER_NAME: "Shopify Daily Report"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create daily report window
+        run: |
+          echo "REPORT_DIR=$GITHUB_WORKSPACE/reports/$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+          echo "SHOPIFY_SINCE=$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+          echo "SHOPIFY_UNTIL=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
+      - name: Collect and email Shopify report
+        run: python scripts/run_and_email_shopify_report.py
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopify-report-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30
