@@ -1,0 +1,30 @@
+name: Weekly Shopify report health check
+
+on:
+  schedule:
+    # 07:00 UTC = 09:00 Africa/Johannesburg (SAST).
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      REPORT_WORKFLOW: "shopify-daily-report.yml"
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO || 'michaelmdiener@gmail.com' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run workflow health check and email summary
+        run: python scripts/check_shopify_workflow_health.py
