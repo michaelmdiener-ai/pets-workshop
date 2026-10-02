@@ -1,0 +1,62 @@
+name: Supplier Test Cohort
+
+on:
+  push:
+    branches:
+      - "**"
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      test_failure:
+        description: "Intentionally fail after tests to exercise Slack failure notification"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  unit-and-integration-tests:
+    name: Unit and integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run supplier test-cohort tests
+        run: python3 scripts/test_supplier_test_cohort.py
+
+      - name: Exercise Slack failure path
+        if: ${{ inputs.test_failure == true }}
+        run: |
+          echo "Intentional failure requested for Slack webhook verification."
+          exit 1
+
+      - name: Notify Slack on failure
+        if: ${{ failure() }}
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Supplier Test Cohort CI failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":x: *Supplier Test Cohort CI failed*\nRepository: `${{ github.repository }}`\nWorkflow: `${{ github.workflow }}`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View failed run>"
+                  }
+                }
+              ]
+            }
